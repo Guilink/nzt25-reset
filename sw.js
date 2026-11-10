@@ -1,10 +1,12 @@
 /* NZT-25 | RESET — service worker
    App shell em cache para abrir instantaneamente e funcionar offline.
    Ao publicar uma nova versão, altere VERSION para renovar o cache. */
-const VERSION = "nzt25-v1";
+const VERSION = "nzt25-v2";
 const SHELL = [
   "./",
   "./index.html",
+  "./widget.html",
+  "./protocol.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
@@ -33,8 +35,9 @@ self.addEventListener("fetch", e => {
   if (req.mode === "navigate") {
     e.respondWith(
       fetch(req)
-        .then(res => { const copy = res.clone(); caches.open(VERSION).then(c => c.put("./index.html", copy)); return res; })
-        .catch(() => caches.match("./index.html"))
+        .then(res => { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); return res; })
+        .catch(() => caches.match(req, { ignoreSearch: true })
+          .then(hit => hit || caches.match(url.pathname.endsWith("widget.html") ? "./widget.html" : "./index.html")))
     );
     return;
   }

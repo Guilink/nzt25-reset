@@ -74,6 +74,24 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 .bar{height:6px;border-radius:6px;background:var(--bg2);margin-top:14px;overflow:hidden}
 .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:6px;transition:width .35s ease}
 
+/* agora */
+.now{display:block;width:100%;text-align:left;margin-bottom:10px;background:var(--bg2);border:1px solid var(--accentDim);border-radius:var(--r);padding:14px 16px 13px;position:relative;overflow:hidden}
+.now::before{content:"";position:absolute;inset:0;background:radial-gradient(90% 120% at 0% 0%,var(--accentGlow),transparent 60%);pointer-events:none}
+.now:active{background:var(--card)}
+.now-top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px}
+.now-lbl{color:var(--accent);font-weight:600;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.now-lbl span{font-family:var(--mono);font-weight:400;letter-spacing:0;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(140,207,157,.5);animation:pulse 2.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(140,207,157,.45)}70%{box-shadow:0 0 0 7px rgba(140,207,157,0)}100%{box-shadow:0 0 0 0 rgba(140,207,157,0)}}
+.now-range{font-family:var(--mono);color:var(--muted)}
+.now-t{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:8px;line-height:1.2}
+.now-d{font-size:13px;color:var(--muted);margin-top:3px}
+.now-bar{height:3px;border-radius:3px;background:var(--line);margin-top:12px;overflow:hidden}
+.now-bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+.now-foot{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);margin-top:9px}
+.now-foot #nNext{color:var(--text);opacity:.85}
+.now-foot #nLeft{font-family:var(--mono);white-space:nowrap}
+
 /* day strip */
 .strip-wrap{margin:14px -16px 0;position:relative}
 .strip{display:flex;gap:6px;overflow-x:auto;padding:4px 16px 8px;scroll-snap-type:x proximity;scrollbar-width:none}
@@ -200,6 +218,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
     </div>
   </header>
 
+  <button class="now" id="nowCard" aria-label="Ver agenda de hoje">
+    <div class="now-top"><span class="now-lbl"><i class="dot"></i>Agora <span id="nClock"></span></span><span class="now-range" id="nRange"></span></div>
+    <div class="now-t" id="nTitle"></div>
+    <div class="now-d" id="nDesc"></div>
+    <div class="now-bar" id="nBarWrap"><i id="nBar"></i></div>
+    <div class="now-foot"><span id="nNext"></span><span id="nLeft"></span></div>
+  </button>
+
   <section class="hero" aria-live="polite">
     <div class="hero-top">
       <div class="daynum"><span id="hDate">—</span><b id="hDay">01<small>/25</small></b></div>
@@ -276,94 +302,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 </div></div>
 <div class="toast" id="toast"></div>
 
+<script src="protocol.js"></script>
 <script>
 "use strict";
-/* ========================= 1. PROTOCOL (dados) ========================= */
-const PROTOCOL = {
-  totalDays: 25,
-  phases: [
-    { from:1,  to:5,  name:"Recuperar controle",        desc:"Estabilizar horários, sono e o momento da manhã." },
-    { from:6,  to:10, name:"Quebrar padrões",           desc:"Identificar e interromper os gatilhos de dispersão." },
-    { from:11, to:18, name:"Construir nova identidade", desc:"Repetir o essencial até virar o modo padrão." },
-    { from:19, to:25, name:"Consolidar",                desc:"Manter com menos esforço e ajustar o que não encaixou." },
-  ],
-  // getDay(): 0=dom ... 6=sáb
-  dayTypes: {
-    1:"gym", 3:"gym", 5:"gym",
-    2:"walk", 4:"walk",
-    6:"sat", 0:"sun",
-  },
-  typeLabel: { gym:"Academia", walk:"Caminhada / mobilidade", sat:"Atividade livre", sun:"Descanso" },
-  book: { title:"Morra sem nada", days:4, pagesPerDay:10 },
-};
-
-function weekdayAgenda(type){
-  const morning = type === "gym"
-    ? { h:"06:40", t:"Academia", d:"Treino; depois retorno, banho e café da manhã." }
-    : { h:"06:40", t:"Caminhada ou mobilidade", d:"20–30 min; depois banho e café da manhã." };
-  return [
-    { h:"05:45", t:"Acordar", d:"Água e higiene." },
-    { h:"05:55", t:"Bíblia e oração", d:"20 minutos." },
-    { h:"06:15", t:"Preparar-se" },
-    ...(type === "gym" ? [{ h:"06:30", t:"Deslocamento", d:"10 minutos até a academia." }] : []),
-    morning,
-    { h:"08:20", t:"Planejar a entrega principal", d:"Uma entrega concreta antes das calls." },
-    { h:"09:00", e:"11:00", t:"Calls e reuniões" },
-    { h:"11:00", t:"Bloco de foco", d:"Começar a entrega principal, sem distrações." },
-    { h:"13:00", t:"Almoço e pausa" },
-    { h:"14:00", t:"Execução" },
-    { h:"16:30", t:"Fechamento do expediente", d:"Concluído, pendente e primeiro passo de amanhã." },
-    { h:"17:00", t:"Vida pessoal" },
-    { h:"20:45", t:"Desacelerar", d:"Reduzir telas e preparar o dia seguinte." },
-    { h:"21:45", t:"Dormir", d:"Proteger 8 horas de sono." },
-  ];
-}
-function weekendAgenda(type){
-  const list = [
-    { h:"Manhã", t:"Acordar sem obrigação de horário", d:"Água e higiene ao levantar." },
-    { h:"Manhã", t:"Momento com Deus", d:"Bíblia e oração, no ritmo do dia." },
-    type === "sat"
-      ? { h:"Livre", t:"Atividade física livre", d:"Algo que mova o corpo, sem roteiro." }
-      : { h:"Livre", t:"Descanso", d:"Recuperação. Um passeio leve é opcional." },
-    { h:"Dia", t:"Refeições equilibradas", d:"Mesmo cuidado dos dias úteis." },
-    { h:"Tarde", t:"Vida pessoal" },
-    { h:"Noite", t:"Desacelerar", d:"Reduzir telas no início da noite." },
-  ];
-  list.push(type === "sun"
-    ? { h:"21:45", t:"Dormir", d:"Prepara o despertar de segunda." }
-    : { h:"Noite", t:"Dormir", d:"Em horário que proteja 8 horas de sono." });
-  return list;
-}
-
-function buildMissions(dayN, type){
-  const weekday = type === "gym" || type === "walk";
-  const m = [];
-  m.push({ id:"deus", t:"Momento com Deus", s: weekday ? "Bíblia e oração, 20 min às 05:55." : "Bíblia e oração, no horário que fizer sentido." });
-  const phys = {
-    gym:  { t:"Academia", s:"Treino às 06:40." },
-    walk: { t:"Caminhada ou mobilidade", s:"20–30 min às 06:40." },
-    sat:  { t:"Atividade livre", s:"Mover o corpo do jeito que preferir." },
-    sun:  { t:"Descanso", s:"Recuperação. Nada a cumprir além de descansar." },
-  }[type];
-  m.push({ id:"fisico", ...phys });
-  if (weekday){
-    m.push({ id:"entrega", t:"Definir a entrega principal", s:"Antes das 09:00 — uma entrega concreta." });
-    m.push({ id:"foco", t:"Bloco de foco após as calls", s:"A partir das 11:00, na entrega definida." });
-  }
-  m.push({ id:"alimentacao", t:"Alimentação equilibrada", s: weekday ? "Refeições regulares e completas." : "Manter o equilíbrio também no fim de semana." });
-  m.push({ id:"cafe", t:"Observar o café", s:"Registrar as xícaras e reduzir aos poucos, sem corte abrupto.", coffee:true });
-  if (dayN <= PROTOCOL.book.days){
-    const done = (dayN - 1) * PROTOCOL.book.pagesPerDay;
-    m.push({ id:"leitura", t:`Ler 10 páginas — ${PROTOCOL.book.title}`, s:`Parte ${dayN} de ${PROTOCOL.book.days} · ${40 - done} páginas restantes antes de hoje.` });
-  } else {
-    m.push({ id:"leitura", t:"Leitura pessoal", s:"10–15 minutos." });
-  }
-  if (weekday) m.push({ id:"fechamento", t:"Fechar o expediente", s:"16:30 — registrar concluído, pendente e primeiro passo." });
-  if (type === "sat") m.push({ id:"sono", t:"Desacelerar e dormir cedo", s:"Horário flexível, protegendo 8 horas de sono." });
-  else m.push({ id:"sono", t:"Desacelerar e dormir às 21:45", s:"Desacelerar a partir das 20:45." });
-  return m;
-}
-
 /* ========================= 2. STORAGE (adaptadores) ========================= */
 // Interface: { name, load(): object|null, save(state): void }
 // Para sincronização futura, criar CloudAdapter com a mesma interface
@@ -380,10 +321,6 @@ const storage = LocalAdapter.available() ? LocalAdapter : MemoryAdapter;
 
 /* ========================= 3. STATE ========================= */
 const SCHEMA_VERSION = 1;
-const DEFAULT_START = "2026-11-10"; // Dia 1 do protocolo
-const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-const parseISO = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
-const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
 
 function defaultState(){ return { schema:SCHEMA_VERSION, startDate: DEFAULT_START, startSetByUser:false, days:{}, updatedAt: Date.now() }; }
 let state = (() => {
@@ -532,8 +469,21 @@ function renderBottom(){
   $("#todayLbl").textContent = ti < 1 ? "começa " + dateOf(1).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"}) : ti > PROTOCOL.totalDays ? "concluído" : "dia " + ti;
 }
 
+function renderNow(){
+  const b = nowBlock(new Date(), state.startDate);
+  $("#nClock").textContent = b.clock;
+  $("#nRange").textContent = b.flexible && b.range.indexOf("–") > 0 ? b.range + " · flexível" : b.range;
+  $("#nTitle").textContent = b.t;
+  $("#nDesc").textContent = b.d;
+  $("#nDesc").hidden = !b.d;
+  $("#nBarWrap").hidden = b.frac == null;
+  if (b.frac != null) $("#nBar").style.width = (b.frac*100).toFixed(1) + "%";
+  $("#nNext").textContent = "Depois · " + (b.next.h === "amanhã" ? "amanhã, " : b.next.h + " ") + b.next.t;
+  $("#nLeft").textContent = fmtLeft(b.minsLeft);
+}
+
 function render(scroll=true){
-  renderHero(); renderStrip(scroll); renderMissions(); renderAgenda(); renderLog(); renderTabs(); renderBottom();
+  renderNow(); renderHero(); renderStrip(scroll); renderMissions(); renderAgenda(); renderLog(); renderTabs(); renderBottom();
 }
 
 /* --------- eventos --------- */
@@ -617,7 +567,8 @@ $("#views").addEventListener("touchend", e => {
 
 window.addEventListener("hashchange", () => { const h = readHash(); if (h && h !== sel) setSel(h); });
 // atualiza o destaque "agora" da agenda
-setInterval(() => { if (tab === "agenda") renderAgenda(); }, 60000);
+setInterval(() => { renderNow(); if (tab === "agenda") renderAgenda(); }, 30000);
+$("#nowCard").onclick = () => { tab = "agenda"; setSel(todayIndex()); window.scrollTo({ top: 0, behavior: "smooth" }); };
 // outras abas do mesmo navegador
 window.addEventListener("storage", e => { if (e.key === LocalAdapter.key){ const s = storage.load(); if (s){ state = s; render(false); } } });
 

@@ -2,7 +2,9 @@
 
 Painel pessoal para um protocolo de 25 dias. PWA instalável, funciona offline.
 
-- `index.html` — app completo (dados do protocolo, camada de armazenamento, UI).
+- `index.html` — app (camada de armazenamento e UI).
+- `protocol.js` — dados do protocolo e cálculo do bloco atual ("Agora"), compartilhado.
+- `widget.html` — página compacta do bloco atual, para apps de widget da tela inicial.
 - `manifest.webmanifest`, `sw.js`, `icons/` — instalação e cache offline.
 
 O progresso é salvo no `localStorage` do navegador/aparelho. A persistência passa por um
